@@ -1,43 +1,76 @@
 # Tyk PoC Repository
 
-Proof-of-concept and Production-ready Tyk deployment configurations,. All configs are transparent, documented, following best practices, and ready to use.
+Tyk deployment configurations for Docker and Kubernetes. All configurations are transparent, documented, follow best practices, and ready to use.
 
-## 📝 License(s) Prerequisites
+## Prerequisites
 
-You can get free trial access through https://tyk.io/sign-up/
+**Tyk Licenses** - Get free trial access at https://tyk.io/sign-up/
 
-## 🚀 Quick Start
+Required licenses depend on deployment type:
+
+- **Self-Managed**: Dashboard license, Portal license (optional)
+- **Hybrid**: Tyk Cloud account with MDCB credentials
+- **Operator**: Operator license
+
+## Quick Start
 
 Choose your deployment:
 
-### Docker Deployments
+### Docker
 
-- **[Self-Managed](./docker/self-managed/)** - Full stack with Dashboard, Gateway, Portal, Redis, Postgres
-- **[Hybrid](./docker/hybrid/)** - Tyk Cloud Dashboard + Self-hosted Gateway
-- **[MDCB](./docker/mdcb/)** - Multi Data Center Bridge setup (Full stack- Control plane and Worker Data planes)
+| Deployment       | Description                                                     | Guide                            |
+| ---------------- | --------------------------------------------------------------- | -------------------------------- |
+| **Self-Managed** | Full stack: Dashboard, Gateway, Portal, Pump, Redis, PostgreSQL | [README](./docker/self-managed/) |
+| **Hybrid**       | Data plane connecting to Tyk Cloud/MDCB: Gateway, Pump, Redis   | [README](./docker/hybrid/)       |
 
-### Kubernetes (Helm) Deployments
+### Kubernetes (Helm)
 
-- **[Helm Self-Managed](./kubernetes/helm-self-managed/)** - Full stack with Dashboard, Gateway, Portal, Redis, Postgres
-- **[Hybrid](./kubernetes/helm-hybrid/)** - Tyk Cloud Dashboard + Self-hosted Gateway
-- **[Hybrid](./kubernetes/helm-mdcb/)** - Multi Data Center Bridge setup (Full stack- Control plane and Worker Data planes)
-- **[Operator](./kubernetes/standalone-operator/)** - Standalone Tyk Operator
+| Deployment       | Description                             | Guide                                       |
+| ---------------- | --------------------------------------- | ------------------------------------------- |
+| **Self-Managed** | Full stack using `tyk-stack` chart      | [README](./kubernetes/helm-self-managed/)   |
+| **Hybrid**       | Data plane using `tyk-data-plane` chart | [README](./kubernetes/helm-hybrid/)         |
+| **Operator**     | Standalone Tyk Operator                 | [README](./kubernetes/standalone-operator/) |
 
-## 📋 Requirements
+## Utilities
 
-- **Docker**: 20.10+ with Docker Compose
-- **Kubernetes**: 1.24+ (for K8s deployments)
-- **Tyk License**: Required for Dashboard, Dev Portal, Operator and MDCB Deployments
+### Bootstrap Utility
 
-## 🎯 Design Principles
+Automated setup for Tyk deployments - creates organization, admin user, test API, policies, and Portal configuration.
 
-✅ **Transparency** - All configs visible and documented  
-✅ **Education** - Learn by seeing and modifying  
-✅ **Cross-platform** - Works on Windows, Mac, Linux  
-✅ **Self-contained** - Each example includes everything needed  
-✅ **Production-ready** - Based on best practices
+| Utility       | Description                                  | Guide                        |
+| ------------- | -------------------------------------------- | ---------------------------- |
+| **Bootstrap** | Automated org/admin/API/Portal bootstrapping | [README](./utils/bootstrap/) |
 
-## 🛠️ Utilities
+### Docker Utilities
 
-- **[Bootstrap](./utils/bootstrap/)** - Automated org/admin/Provider/Users/APIs bootstraping for Tyk compenents.
-- **[Cloud Setup](./utils/cloud-setup/)** - EC2, EKS, AKS deployment support
+Located in `docker/utils/`:
+
+| File                    | Description                                                                       |
+| ----------------------- | --------------------------------------------------------------------------------- |
+| `dbs.sql`               | PostgreSQL initialization script (creates `tyk_dashboard` and `portal` databases) |
+| `crt-generator.sh`      | TLS certificate generator for Gateway and Dashboard                               |
+| `GeoLite2-Country.mmdb` | MaxMind GeoIP database for country-level IP analytics                             |
+
+## Repository Structure
+
+```
+tyk-pocs/
+├── docker/
+│   ├── self-managed/      # Full stack Docker deployment
+│   ├── hybrid/            # Hybrid data plane Docker deployment
+│   └── utils/             # Shared Docker utilities
+├── kubernetes/
+│   ├── helm-self-managed/ # Full stack Helm deployment
+│   ├── helm-hybrid/       # Hybrid data plane Helm deployment
+│   └── standalone-operator/ # Tyk Operator deployment
+└── utils/
+    └── bootstrap/         # Bootstrap automation utility
+```
+
+## Resources
+
+- [Free Trial](https://tyk.io/sign-up/)
+- [Tyk Documentation](https://tyk.io/docs/)
+- [Tyk Helm Charts](https://github.com/TykTechnologies/tyk-charts)
+- [Release Notes](https://tyk.io/docs/developer-support/release-notes/overview)
+- [Support](https://support.tyk.io/hc/en-gb)
