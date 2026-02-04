@@ -1,0 +1,503 @@
+# ============================================================================
+# TYK SELF-MANAGED HELM VALUES
+# ============================================================================
+# comments describing PRODUCTION and PERFORMANCE tuning recommendations.
+# Default values are set for DEVELOPMENT environments.
+# ============================================================================
+
+global:
+  storageType: postgres
+
+  hashKeys: true
+
+  postgres:
+    connectionStringSecret:
+       name: "tyk-conf"
+       keyName: "DashDatabaseConnectionString"
+
+  redis:
+    addrs:
+      - tyk-redis-master:6379
+    pass: ""
+    useSSL: false
+    maxIdle: 3000
+    storage:
+      database: 0
+
+    # enableCluster: true # PROD/PERFORMANCE: Use Redis Cluster for high availability and performance
+
+  # Secrets Configuration
+  secrets:
+    useSecretName: "tyk-conf"
+
+  adminUser:
+    useSecretName: "tyk-conf"
+
+  components:
+    bootstrap: true
+    pump: true
+    devPortal: true
+    operator: true
+
+  servicePorts:
+    dashboard: 3000
+    gateway: 8080
+
+  tls: # PROD: Set to true to enable SSL/TLS for Gateway and Dashboard
+    gateway: false
+    dashboard: false
+
+# ============================================================================
+# GATEWAY CONFIGURATION
+# ============================================================================
+tyk-gateway:
+  gateway:
+    image:
+      repository: tykio/tyk-gateway
+      tag: v5.11.0
+      pullPolicy: IfNotPresent
+
+    # Internal hostname identifier
+    # For external domain access, configure ingress.hosts[].host below
+    hostName: ""
+    replicaCount: 1
+    analyticsEnabled: true
+
+    # Session configuration
+    globalSessionLifetime: 86400 # in seconds. PROD: Adjust based on security requirements.
+
+    # Logging configuration
+    log:
+      level: "info" # PROD: Set to "error" to reduce log volume
+      format: "default"
+
+    accessLogs:
+      enabled: false
+
+    # Security & configuration
+    allowInsecureConfigs: true
+    enableCustomDomains: true
+    hashKeyFunction: "murmur128" # Chart default. PROD: Consider sha256 for stronger hashing
+
+    # Path matching configuration
+    enablePathPrefixMatching: true
+    enablePathSuffixMatching: true
+    enableStrictRoutes: true
+
+    # HTTP server options
+    httpsServerOptions:
+      xffDepth: 1
+
+    # Performance tuning
+    # maxIdleConnectionsPerHost: 500 # PROD/PERFORMANCE: Set high value (>=10000) for high-throughput scenarios
+
+    extraEnvs:
+      # ===== GENERAL & CONNECTIVITY =====
+      - name: TYK_GW_DISABLEPORTWHITELIST
+        value: "true"
+      - name: TYK_GW_MINTOKENLENGTH
+        value: "32" # Minimum length for generated tokens. Should be 32 or higher.
+      - name: TYK_GW_ENABLEBUNDLEDOWNLOADER
+        value: "true"
+      - name: TYK_GW_BUNDLEBASEURL
+        value: ""
+      # - name: TYK_GW_FORCEGLOBALSESSIONLIFETIME
+      #   value: "true" # When true, enforces global session lifetime regardless of key-specific settings
+      # - name: TYK_GW_SESSIONLIFETIMERESPECTSKEYEXPIRATION
+      #   value: "true" # When true, session lifetime respects the key's expiration time
+
+      # ===== STORAGE CONFIGURATION (Redis) =====
+      - name: TYK_GW_STORAGE_MAXACTIVE
+        value: "5000"
+      - name: TYK_GW_CACHESTORAGE_MAXACTIVE
+        value: "2000" # PPROD/PERFORMANCE: Set to a higher value if you are expecting more traffic.
+      # - name: TYK_GW_STORAGE_SSLINSECURESKIPVERIFY
+      #   value: "false" # PROD: Keep false to validate Redis SSL certificates
+      # - name: TYK_GW_STORAGE_TIMEOUT
+      #   value: "" # Connection timeout in seconds. Adjust based on network latency (e.g. 15)
+
+      # ===== ANALYTICS CONFIGURATION =====
+      - name: TYK_GW_USEREDISLOG
+        value: "true" # When true, real-time Gateway log view appear in the Dashboard (requires same Redis instance as the dashboard)
+      - name: TYK_GW_ANALYTICSCONFIG_ENABLEDETAILEDRECORDING
+        value: "true" # PROD: Set to false - increases storage and resource usage (use for debugging only)
+      - name: TYK_GW_ANALYTICSCONFIG_ENABLEGEOIP
+        value: "false" # If true, set TYK_GW_ANALYTICSCONFIG_GEOIPDBLOCATION e.g /opt/tyk-gateway/databases/GeoLite2-Country.mmdb
+      - name: TYK_GW_ANALYTICSCONFIG_NORMALISEURLS_ENABLED
+        value: "true"
+      - name: TYK_GW_ANALYTICSCONFIG_NORMALISEURLS_NORMALISEUUIDS
+        value: "true"
+      - name: TYK_GW_ANALYTICSCONFIG_NORMALISEURLS_NORMALISENUMBERS
+        value: "true"
+      # - name: TYK_GW_ANALYTICSCONFIG_STORAGEEXPIRATIONTIME
+      #   value: "" # default 60, Time in seconds before analytics records expire if they are not processed
+      # - name: TYK_GW_ANALYTICSCONFIG_ENABLEMULTIPLEANALYTICSKEYS
+      #   value: "true" # PROD/PERFORMANCE: set to true, Enables sharding the analytics records in multiple analytics keys
+      # - name: TYK_GW_ENABLESEPERATEANALYTICSSTORE
+      #   value: "false" # PROD/PERFORMANCE: Set to true and use dedicated Redis Cluster for analytics
+      # - name: TYK_GW_ANALYTICSSTORAGE_TYPE
+      #   value: "redis"
+      # - name: TYK_GW_ANALYTICSSTORAGE_ADDRS
+      #   value: "tyk-redis:6379" # PROD: Use separate Redis cluster e.g. ["analytics-redis1:6379","analytics-redis2:6380"]
+      # - name: TYK_GW_ANALYTICSSTORAGE_USERNAME
+      #   value: ""
+      # - name: TYK_GW_ANALYTICSSTORAGE_PASSWORD
+      #   value: ""
+      # - name: TYK_GW_ANALYTICSSTORAGE_DATABASE
+      #   value: "0"
+      # - name: TYK_GW_ANALYTICSSTORAGE_MAXIDLE
+      #   value: "3000"
+      # - name: TYK_GW_ANALYTICSSTORAGE_MAXACTIVE
+      #   value: "5000"
+      # - name: TYK_GW_ANALYTICSSTORAGE_ENABLECLUSTER
+      #   value: "false" # PROD/PERFORMANCE: Set to true for Redis Cluster
+      # - name: TYK_GW_ANALYTICSSTORAGE_USESSL
+      #   value: "false" # PROD: Set to true for secure analytics Redis connections
+
+      # ===== HTTP SERVER & PROXY OPTION =====
+      - name: TYK_GW_HTTPSERVEROPTIONS_ENABLEHTTP2
+        value: "true"
+      - name: TYK_GW_PROXYENABLEHTTP2
+        value: "true"
+      - name: TYK_GW_PROXYSSLMINVERSION
+        value: "771"
+      - name: TYK_GW_PROXYSSLINSECURESKIPVERIFY
+        value: "false" # PROD: Keep false to validate upstream SSL certificates
+      # - name: TYK_GW_HTTPSERVEROPTIONS_READTIMEOUT
+      #   value: "" # defaults to 120 seconds PROD: Set reasonable timeout to prevent resource exhaustion (e.g. 30)
+      # - name: TYK_GW_HTTPSERVEROPTIONS_WRITETIMEOUT
+      #   value: "" # defaults to 120 seconds  PROD: Set reasonable timeout to prevent resource exhaustion (e.g. 30)
+      # - name: TYK_GW_HTTPSERVEROPTIONS_MAXREQUESTBODYSIZE
+      #   value: "" # PROD: Set max request body size to prevent DDoS and memory issues (in bytes)
+      # - name: TYK_GW_HTTPSERVEROPTIONS_SSLINSECURESKIPVERIFY
+      #   value: "false" # PROD: Keep false to validate SSL certificates
+      
+      # ===== UPTIME CHECKS =====
+      - name: TYK_GW_UPTIMETESTS_CONFIG_ENABLEUPTIMEANALYTICS
+        value: "true"
+      - name: TYK_GW_UPTIMETESTS_CONFIG_FAILURETRIGGERSAMPLESIZE
+        value: "1" # The sample size before marking upstream as HostUp or HostDown event
+      - name: TYK_GW_UPTIMETESTS_CONFIG_TIMEWAIT
+        value: "30" # Interval in seconds between uptime checks
+
+      # ===== PERFORMANCE TUNING =====
+      # - name: TYK_GW_MAXIDLECONNSPERHOST
+      #   value: "" # PROD/PERFORMANCE: Set high value (>=10000) for high-throughput scenarios
+      # - name: TYK_GW_DRLTHRESHOLD
+      #   value: "-1" # PROD/PERFORMANCE: Set to -1 to use DRL and disable fallback to hard-rate limit sync
+      # - name: TYK_GW_DRLNOTIFICATIONFREQUENCY
+      #   value: "1" # PROD/PERFORMANCE: Increase sync frequency for more accurate distributed rate limiting
+      # TYK_GW_CONTROLAPIPORT and TYK_GW_CONTROLAPIHOSTNAME # PROD: Set to isolate Tyk Gateway API traffic from API traffic. https://tyk.io/docs/planning-for-production#change-your-control-port
+      # - name: TYK_GW_PROXYCLOSECONNECTIONS
+      #   value: "false" # PROD/PERFORMANCE: Keep false to reuse connections to upstreams (keep-alive)
+
+    # -------------------------------------------------------------------------
+    # INGRESS CONFIGURATION
+    # -------------------------------------------------------------------------
+    # Examples included: AWS ALB, GCE, Azure AGIC, NGINX
+    # See README for detailed setup instructions per cloud provider
+    # When using ingress, set service.type to ClusterIP
+    # -------------------------------------------------------------------------
+    ingress:
+      enabled: false
+      className: ""
+      annotations: {}
+      hosts:
+        - host: tyk-gw.local
+          paths:
+            - path: /
+              pathType: Prefix
+      tls: []
+
+      ## Example: AWS ALB
+      # enabled: true
+      # className: alb
+      # annotations:
+      #   alb.ingress.kubernetes.io/scheme: internet-facing
+      #   alb.ingress.kubernetes.io/target-type: ip
+      #   alb.ingress.kubernetes.io/healthcheck-path: /hello
+      # hosts:
+      #   - host: gateway.yourdomain.com
+      #     paths:
+      #       - path: /
+      #         pathType: Prefix
+      ## Optional: TLS with ACM certificate
+      # annotations:
+      #   alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+      #   alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:region:account:certificate/xxx
+      # tls:
+      #   - hosts:
+      #       - gateway.yourdomain.com
+
+    # -------------------------------------------------------------------------
+    # AUTO-SCALING CONFIGURATION
+    # -------------------------------------------------------------------------
+    autoscaling:
+      enabled: false
+      # Uncomment to enable auto-scaling:
+      # enabled: true
+      # minReplicas: 2
+      # maxReplicas: 8
+      # averageCpuUtilization: 60
+
+    service:
+      type: LoadBalancer
+      externalTrafficPolicy: Local
+
+# ============================================================================
+# DASHBOARD CONFIGURATION
+# ============================================================================
+tyk-dashboard:
+  dashboard:
+    image:
+      repository: tykio/tyk-dashboard
+      tag: v5.11.0
+      pullPolicy: IfNotPresent
+
+    hostName: tyk-dashboard.local
+    replicaCount: 1
+
+    # General configuration
+    defaultPageSize: 10
+    notifyOnChange: true
+    showOrgId: true
+
+    # Analytics configuration
+    enableAggregateLookups: true
+    enableAnalyticsCache: true
+
+    # API & Policy configuration
+    enableDuplicateSlugs: true
+
+    # Key management
+    enableDeleteKeyByHash: true
+    enableUpdateKeyByHash: true
+    enableHashedKeysListing: true
+
+    # User management
+    ssoEnableUserLookup: true
+    dashboardSessionLifetime: 43200
+
+    # Security settings
+    forbidAdminViewAccessToken: false
+    forbidAdminResetAccessToken: false
+
+    # Host configuration
+    hostConfig:
+      enableHostNames: true
+      disableOrgSlugPrefix: true
+      overrideHostname: "tyk-gw.local"
+
+    auditLogs:
+      enabled: true
+      type: db  # Options: db (shows in Dashboard), file, no-op
+      format: json  # Options: json, text (JSON is better for log aggregation)
+      # PROD: Keep false, enable only for debugging (increases storage)
+      enableDetailedRecording: false
+
+    extraEnvs:
+      # ===== STORAGE CONFIGURATION - LOGS =====
+      - name: TYK_DB_STORAGE_LOGS_TYPE
+        value: "postgres" # PROD: storage configuration for logs
+      - name: TYK_DB_STORAGE_LOGS_CONNECTIONSTRING
+        valueFrom:
+          secretKeyRef:
+            name: tyk-conf
+            key: DashDatabaseConnectionString
+      # - name: TYK_DB_STORAGE_MAIN_TABLESHARDING
+      #   value: "true" # PROD/PERFORMANCE: Enable table sharding
+      # - name: TYK_DB_STORAGE_ANALYTICS_TABLESHARDING
+      #   value: "true" # PROD/PERFORMANCE: Enable table sharding for analytics
+      # - name: TYK_DB_STORAGE_LOGS_TABLESHARDING
+      #   value: "true"
+      # - name: TYK_DB_STORAGE_UPTIME_TABLESHARDING
+      #   value: "true"
+      
+      # ===== GENERAL CONFIGURATION =====
+
+      - name: TYK_DB_REDISMAXACTIVE
+        value: "2000" # PROD/PERFORMANCE: Max active Redis connections, Default 500, SET to a higher number if expecting traffic
+      - name: TYK_DB_HOSTCONFIG_SECURECOOKIES
+        value: "false" # PROD: Set to true
+      - name: TYK_DB_SECURITY_USERPASSWORDMAXDAYS
+        value: "0" # PROD: Set password expiry (e.g. 90 days)
+      - name: TYK_DB_SECURITY_ENFORCEPASSWORDHISTORY
+        value: "0" # PROD: Set to prevent password reuse (e.g. 5)
+      - name: TYK_DB_SECURITY_FORCEFIRSTLOGINPWRESET
+        value: "false" # PROD: Set to true to force password change on first login
+      - name: TYK_DB_SECURITY_LOGINFAILUREUSERNAMELIMIT
+        value: "0" # 0 = unlimited login attempts per username
+      - name: TYK_DB_SECURITY_LOGINFAILUREIPLIMIT
+        value: "0" # 0 = unlimited login attempts per IP
+      - name: TYK_DB_SECURITY_LOGINFAILUREEXPIRATION
+        value: "900"
+      # - name: TYK_DB_LOGLEVEL
+      #   value: "" # PROD: Set to "error" to reduce log volume
+      # - name: TYK_DB_REDISTIMEOUT
+      #   value: "" # Connection timeout in seconds (e.g. 15)
+      # - name: TYK_DB_SECURITY_ADDITIONALPERMISSIONS
+      #   value: "" # You can set a list of additional permissions, that can be applied for users or user groups.
+      # - name: TYK_DB_UI_DONTALLOWLICENSEMANAGEMENT
+      #   value: "false"
+      # - name: TYK_DB_DISABLEPARALLELSESSIONS
+      #   value: "false"
+      # - name: TYK_DB_SSOCUSTOMLOGINURL       # Custom SSO login URL
+      #   value: ""
+
+    opa:     # OPA (Open Policy Agent) CONFIGURATION
+      enabled: true
+      api: true
+
+    # -------------------------------------------------------------------------
+    # INGRESS CONFIGURATION
+    # -------------------------------------------------------------------------
+    # See Gateway ingress section above for detailed cloud-specific examples
+    # -------------------------------------------------------------------------
+    ingress:
+      enabled: false
+      className: ""
+      annotations: {}
+      hosts:
+        - host: tyk-dashboard.local
+          paths:
+            - path: /
+              pathType: Prefix
+      tls: []
+
+    # -------------------------------------------------------------------------
+    # SERVICE CONFIGURATION
+    # -------------------------------------------------------------------------
+    service:
+      type: LoadBalancer
+
+      # Cloud-specific annotations
+      # annotations: {}
+
+  tib: # Enables SSO integration
+    enabled: true
+
+# ============================================================================
+# PUMP CONFIGURATION
+# ============================================================================
+tyk-pump:
+  pump:
+    image:
+      repository: tykio/tyk-pump-docker-pub
+      tag: v1.13.2
+      pullPolicy: IfNotPresent
+
+    replicaCount: 1
+    backend:
+      - "postgres"
+    uptimePumpBackend: "postgres"
+    purgeDelay: 2 # Seconds between purge cycles. PROD: Can be set to 1 for high traffic
+
+    # Redis connection pool configuration
+    # maxIdleConnections: 2000 # PROD/PERFORMANCE: SET high Max idle connections
+    # maxActiveConnections: 4000 # PROD/PERFORMANCE: SET high Max active connections
+
+    extraEnvs:
+      - name: TYK_PMP_PUMPS_SQLAGGREGATE_META_TRACKALLPATHS
+        value: "true" # Default false, Set to true to track all API paths in analytics
+      - name: TYK_PMP_UPTIMEPUMPCONFIG_LOGLEVEL
+        value: "error"
+      # - name: TYK_PMP_PUMPS_SQLAGGREGATE_META_TABLESHARDING
+      #   value: "true" # PROD/PERFORMANCE: Enable table sharding for large datasets
+      # - name: TYK_PMP_PUMPS_SQL_META_TABLESHARDING
+      #   value: "true" # PROD/PERFORMANCE: Enable table sharding
+      # - name: TYK_PMP_UPTIMEPUMPCONFIG_TABLESHARDING
+      #   value: "true" # PROD/PERFORMANCE: Enable table sharding
+
+# ============================================================================
+# DEVELOPER PORTAL CONFIGURATION
+# ============================================================================
+tyk-dev-portal:
+  useSecretName: "tyk-conf"
+
+  image:
+    repository: tykio/portal
+    tag: v1.16.0
+    pullPolicy: IfNotPresent
+
+  hostName: tyk-portal.local
+  replicaCount: 1
+  containerPort: 3001
+
+  database:
+    dialect: "postgres"
+    connectionString: "db/portal.db"
+    enableLogs: false
+    maxRetries: 5
+    retryDelay: 5000
+
+  storage:
+    type: "db" # Options: db, s3, fs. PROD: use "s3" for scalable asset storage
+    # s3:
+    #   awsAccessKeyid: ""
+    #   awsSecretAccessKey: ""
+    #   region: "eu-west-1"
+    #   endpoint: "https://s3.eu-west-1.amazonaws.com"
+    #   bucket: "my-portal-assets"
+    #   acl: "private"
+    #   presign_urls: true
+
+  extraEnvs:
+    # ===== GENERAL SETTINGS =====
+
+    - name: PORTAL_REFRESHINTERVAL
+      value: "10" # PROD: Increase to reduce API refresh frequency
+    - name: PORTAL_TIB_ENABLED
+      value: "true" # Enable Tyk Identity Broker for SSO integration
+    # - name: PORTAL_THEMING_DISABLE_UPLOAD
+    #   value: "false" # PROD: Set to true to prevent theme uploads via UI
+    # - name: PORTAL_API_SECRET
+    #   value: "" # PROD: Set a strong secret for Portal API authentication, USE secret manager
+
+    ### -----------------------------------------------------------------------------
+    ### LOGGING
+    ### -----------------------------------------------------------------------------
+    - name: PORTAL_LOG_FORMAT
+      value: "dev" # PROD: Set to "prod" for production-optimized logging
+    - name: PORTAL_LOG_LEVEL
+      value: "info" # PROD: Set to "error" to reduce log volume
+    - name: PORTAL_AUDIT_LOG_ENABLE
+      value: "true" # PROD: set to true to enable audit trail logging
+    - name: PORTAL_AUDIT_LOG_PATH
+      value: "/tmp" # Path for audit log files (required if AUDIT_LOG_ENABLE=true)
+    # - name: PORTAL_DCR_LOG_ENABLED
+    #   value: "false" # Logging Raw responses from the OAuth2.0 Idp for the DCR flow. Enable only for debugging
+
+    # - name: PORTAL_DATABASE_MAX_IDLE_CONNECTIONS
+    #   value: "" # Max idle DB connections default 2, PROD/PERFORMANCE: SET to a higher value when demand increases
+
+  # -------------------------------------------------------------------------
+  # INGRESS CONFIGURATION
+  # -------------------------------------------------------------------------
+  # See Gateway ingress section for configuration examples
+  # -------------------------------------------------------------------------
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: tyk-portal.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+
+  service:
+    type: LoadBalancer
+    port: 3001
+
+# ============================================================================
+# BOOTSTRAP CONFIGURATION
+# ============================================================================
+tyk-bootstrap:
+  bootstrap:
+    devPortal: true
+    dashboard: true
+    sslInsecureSkipVerify: false
+
+    org:
+      name: "PoC Organization"

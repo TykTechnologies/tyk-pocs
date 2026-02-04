@@ -1,0 +1,121 @@
+services:
+  tyk-redis:
+    restart: unless-stopped
+    image: redis:7.2.0
+    container_name: tyk-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - tyk
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  tyk-postgres:
+    restart: unless-stopped
+    image: postgres:16-alpine
+    container_name: tyk-postgres
+    environment:
+      POSTGRES_USER: tykuser
+      POSTGRES_PASSWORD: tykSecurePass123
+      POSTGRES_DB: tyk_analytics
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ../utils/dbs.sql:/docker-entrypoint-initdb.d/01-init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tykuser -d tyk_analytics"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tyk
+
+  tyk-dashboard:
+    restart: unless-stopped
+    image: tykio/tyk-dashboard:${DASHBOARD_VERSION:-v5.10.2}
+    container_name: tyk-dashboard
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./confs/tyk_analytics.env
+    volumes:
+      - tyk-dashboard-certs:/opt/tyk-dashboard/certs
+    networks:
+      - tyk
+    depends_on:
+      tyk-redis:
+        condition: service_healthy
+      tyk-postgres:
+        condition: service_healthy
+
+  tyk-gateway:
+    restart: unless-stopped
+    image: tykio/tyk-gateway-ee:${GATEWAY_VERSION:-v5.10.2}
+    container_name: tyk-gateway
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./confs/tyk.env
+    volumes:
+      - tyk-gateway-certs:/opt/tyk-gateway/certs
+      # - ../utils/GeoLite2-Country.mmdb:/opt/tyk-gateway/databases/GeoLite2-Country.mmdb
+    networks:
+      - tyk
+    depends_on:
+      - tyk-dashboard
+      - tyk-redis
+
+  tyk-pump:
+    restart: unless-stopped
+    image: tykio/tyk-pump-docker-pub:${PUMP_VERSION:-v1.13.1}
+    container_name: tyk-pump
+    env_file:
+      - ./confs/pump.env
+    networks:
+      - tyk
+    depends_on:
+      tyk-redis:
+        condition: service_healthy
+      tyk-postgres:
+        condition: service_healthy
+
+  tyk-portal:
+    restart: unless-stopped
+    image: tykio/portal:${PORTAL_VERSION:-v1.15.0}
+    container_name: tyk-portal
+    ports:
+      - "3001:3001"
+    networks:
+      - tyk
+    env_file:
+      - ./confs/portal.env
+    depends_on:
+      tyk-postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    entrypoint: /opt/portal/dev-portal
+
+networks:
+  tyk:
+    driver: bridge
+    name: tyk
+
+volumes:
+  redis-data:
+    name: redis-data
+  postgres-data:
+    name: postgres-data
+  tyk-gateway-certs:
+    name: gateway-certs
+  tyk-dashboard-certs:
+    name: dashboard-certs

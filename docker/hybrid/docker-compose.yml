@@ -1,0 +1,55 @@
+services:
+  tyk-redis:
+    restart: unless-stopped
+    image: redis:7.2.0
+    container_name: tyk-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - tyk
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  tyk-gateway:
+    restart: unless-stopped
+    image: tykio/tyk-gateway-ee:${GATEWAY_VERSION:-v5.10.2}
+    container_name: tyk-gateway
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./confs/tyk.env
+    volumes:
+      - tyk-gateway-certs:/opt/tyk-gateway/certs
+      # - ../utils/GeoLite2-Country.mmdb:/opt/tyk-gateway/databases/GeoLite2-Country.mmdb
+    networks:
+      - tyk-hybrid
+    depends_on:
+      - tyk-redis
+
+  tyk-pump:
+    restart: unless-stopped
+    image: tykio/tyk-pump-docker-pub:${PUMP_VERSION:-v1.13.1}
+    container_name: tyk-pump
+    env_file:
+      - ./confs/pump.env
+    networks:
+      - tyk
+    depends_on:
+      tyk-redis:
+        condition: service_healthy
+
+networks:
+  tyk:
+    driver: bridge
+    name: tyk-hybrid
+
+volumes:
+  redis-data:
+    name: tyk-hybrid-redis-data
+  tyk-gateway-certs:
+    name: tyk-hybrid-gateway-certs

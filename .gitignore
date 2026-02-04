@@ -1,0 +1,51 @@
+# Environment files
+.env
+!.env.example
+!confs/*.env
+
+# Bootstrap outputs
+bootstrap-output/
+**/bootstrap-output/
+
+# Certificates and keys
+*.key
+*.crt
+*.pem
+*.p12
+*.csr
+!**/certs/README.md
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.idea/
+.vscode/
+*.iml
+.project
+.settings/
+
+# Logs
+*.log
+logs/
+
+# Docker volumes and data
+*-data/
+data/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.backup
+
+# Credentials and secrets
+credentials.txt
+secrets.txt
+bootstrap-credentials.txt
+

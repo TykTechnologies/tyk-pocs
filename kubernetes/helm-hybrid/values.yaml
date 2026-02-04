@@ -1,0 +1,225 @@
+# Tyk Data Plane Helm Values
+global:
+  hashKeys: true
+
+  redis:
+    addrs:
+      - tyk-redis-master:6379
+    pass: ""
+    useSSL: false
+    storage:
+      database: 0
+
+  secrets:
+    # The secret should contain: APISecret
+    useSecretName: "tyk-data-plane-conf"
+
+  remoteControlPlane:
+    # The secret should contain: orgId, userApiKey, groupID
+    useSecretName: "tyk-data-plane-conf"
+
+    enabled: true
+
+    # IMPORTANT: connectionString must be set here, not in the secret
+    connectionString: "your-mdcb.cloud-ara.tyk.io:443"  # REPLACE with your MDCB endpoint
+
+    # Enable SSL for MDCB connection
+    useSSL: true
+
+    # Skip SSL certificate verification (useful for self-signed certs)
+    sslInsecureSkipVerify: true
+
+  # Enable MDCB Synchronizer
+  # mdcbSynchronizer:
+  #   enabled: true
+
+  components:
+    # Enable pump for analytics processing
+    # Hybrid pump will forward analytics to control plane
+    pump: true
+
+  servicePorts:
+    gateway: 8080
+
+  tls:
+    # When true, sets the gateway protocol to HTTPS
+    gateway: false
+    useDefaultTykCertificate: true
+
+
+# GATEWAY
+tyk-gateway:
+  gateway:
+    image:
+      repository: tykio/tyk-gateway-ee
+      tag: v5.11.0
+      pullPolicy: IfNotPresent
+
+    # Internal hostname identifier
+    # For external domain, configure ingress.hosts[].host below
+    hostName: tyk-gw-hybrid.local
+
+    replicaCount: 1
+
+    # Analytics
+    analyticsEnabled: true
+    # Use "rpc" to send analytics directly to control plane
+    # Leave empty to use pump when enabled
+    analyticsConfigType: ""
+
+    extraEnvs:
+      - name: TYK_GW_HTTPSERVEROPTIONS_ENABLEHTTP2
+        value: "true"
+      - name: TYK_GW_PROXYENABLEHTTP2
+        value: "true"
+      - name: TYK_GW_PROXYSSLINSECURESKIPVERIFY
+        value: "true"
+      - name: TYK_GW_STORAGE_MAXIDLE
+        value: "3000"
+      - name: TYK_GW_STORAGE_MAXACTIVE
+        value: "5000"
+      - name: TYK_GW_ANALYTICSCONFIG_ENABLEDETAILEDRECORDING
+        value: "false"
+
+    # -------------------------------------------------------------------------
+    # INGRESS CONFIGURATION
+    # -------------------------------------------------------------------------
+    # Examples included: AWS ALB, GCE, Azure AGIC, NGINX
+    # See README for detailed setup instructions per cloud provider
+    # When using ingress, set service.type to ClusterIP
+    # -------------------------------------------------------------------------
+    ingress:
+      enabled: false
+      className: ""
+      annotations: {}
+      hosts:
+        - host: tyk-gw-hybrid.local
+          paths:
+            - path: /
+              pathType: Prefix
+      tls: []
+
+      ## Example: AWS ALB
+      # enabled: true
+      # className: alb
+      # annotations:
+      #   alb.ingress.kubernetes.io/scheme: internet-facing
+      #   alb.ingress.kubernetes.io/target-type: ip
+      #   alb.ingress.kubernetes.io/healthcheck-path: /hello
+      # hosts:
+      #   - host: gateway.yourdomain.com
+      #     paths:
+      #       - path: /
+      #         pathType: Prefix
+      ## Optional: TLS with ACM certificate
+      ##  annotations:
+      ##    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+      ##    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:region:account:certificate/xxx
+      ##    tls:
+      ##      - hosts:
+      ##          - gateway.yourdomain.com
+
+      ## Example: GCE (GKE)
+      # enabled: true
+      # className: gce
+      # hosts:
+      #   - host: gateway.yourdomain.com
+      #     paths:
+      #       - path: /
+      #         pathType: Prefix
+      ##  Optional: TLS with Google-managed certificate
+      ##  annotations:
+      ##    networking.gke.io/managed-certificates: tyk-gateway-cert
+      ##  tls: []
+      ## 
+      ##  Optional: TLS with self-managed certificate
+      ##  tls:
+      ##    - secretName: tyk-gateway-tls
+      ##      hosts:
+      ##        - gateway.yourdomain.com
+
+      ## Example: Azure AGIC
+      # enabled: true
+      # className: azure-application-gateway
+      # annotations:
+      #   appgw.ingress.kubernetes.io/health-probe-path: /hello
+      #   appgw.ingress.kubernetes.io/backend-protocol: "http"
+      # hosts:
+      #   - host: gateway.yourdomain.com
+      #     paths:
+      #       - path: /
+      #         pathType: Prefix
+      ##  Optional: TLS configuration
+      ##  annotations:
+      ##    appgw.ingress.kubernetes.io/ssl-redirect: "true"
+      ##  tls:
+      ##    - secretName: tyk-gateway-tls
+      ##      hosts:
+      ##        - gateway.yourdomain.com
+
+      ## Example: NGINX
+      # enabled: true
+      # className: nginx
+      # hosts:
+      #   - host: gateway.yourdomain.com
+      #     paths:
+      #       - path: /
+      #         pathType: Prefix
+      ##  Optional: TLS with cert-manager
+      ##  annotations:
+      ##    cert-manager.io/cluster-issuer: letsencrypt-prod
+      ##  tls:
+      ##    - secretName: tyk-gateway-tls
+      ##      hosts:
+      ##        - gateway.yourdomain.com
+
+    # Sharding: Load specific APIs based on tags
+    sharding:
+      enabled: false
+      tags: ""
+
+    # Logging configuration
+    log:
+      level: "info"
+      format: "default"
+
+    # Autoscaling configuration
+    autoscaling: {}
+    #  enabled: true
+    #  minReplicas: 2
+    #  maxReplicas: 8
+    #  averageCpuUtilization: 60
+
+    # TLS configuration
+    tls:
+      secretName: tyk-default-tls-secret
+      insecureSkipVerify: false
+      certificatesMountPath: "/etc/certs/tyk-gateway"
+      certificates:
+        - domain_name: "*"
+          cert_file: "/etc/certs/tyk-gateway/tls.crt"
+          key_file: "/etc/certs/tyk-gateway/tls.key"
+
+    service:
+      type: LoadBalancer # Change to ClusterIP when using Ingress
+      externalTrafficPolicy: Local
+      # annotations: {}
+
+# PUMP (Optional but recommended)
+tyk-pump:
+  pump:
+    image:
+      repository: tykio/tyk-pump-docker-pub
+      tag: v1.13.2
+      pullPolicy: IfNotPresent
+
+    replicaCount: 1
+
+    backend:
+      - "hybrid"
+    hybridPump:
+      # When true: aggregated analytics only (no request logs in Dashboard)
+      # When false: individual traffic logs visible in Dashboard Logs Browser
+      enableAggregateAnalytics: false
+
+    purgeDelay: 2
