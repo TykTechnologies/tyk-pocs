@@ -123,13 +123,13 @@ curl http://localhost:8080/httpbin/get -H "Authorization: <your-api-key>"
 
 ## Access URLs
 
-| Service    | URL                   | Description           |
-| ---------- | --------------------- | --------------------- |
-| Dashboard  | http://localhost:3000 | Admin UI              |
-| Gateway    | http://localhost:8080 | API Gateway           |
-| Portal     | http://localhost:3001 | Developer Portal      |
-| Redis      | localhost:6379        | Cache/Session storage |
-| PostgreSQL | localhost:5432        | Analytics/Config DB   |
+| Service    | URL                     | Description           |
+| ---------- | ----------------------- | --------------------- |
+| Dashboard  | `http://localhost:3000` | Admin UI              |
+| Gateway    | `http://localhost:8080` | API Gateway           |
+| Portal     | `http://localhost:3001` | Developer Portal      |
+| Redis      | `localhost:6379`        | Cache/Session storage |
+| PostgreSQL | `localhost:5432`        | Analytics/Config DB   |
 
 ---
 
@@ -284,7 +284,7 @@ curl "http://localhost:3001/portal-api/providers" \
 
 ### Step 2: Publish API to Portal
 
-Follow: https://tyk.io/docs/portal/publish-api-catalog
+Follow: [Publish API to Catalog](https://tyk.io/docs/portal/publish-api-catalog)
 
 ### Step 3: Developer Self-Service
 
@@ -343,7 +343,7 @@ docker run --rm \
 1. Refresh Dashboard APIs page
 2. Verify your changes are applied
 
-**Workflow Examples:** https://tyk.io/docs/api-management/sync/use-cases
+**Workflow Examples:** [Tyk Sync Use Cases](https://tyk.io/docs/api-management/sync/use-cases)
 
 ---
 
@@ -386,9 +386,9 @@ PORTAL_VERSION=v1.16.0
 
 ## Resources
 
-- **Installation Documentation:** https://tyk.io/docs/tyk-self-managed/docker
-- **Tyk Dashboard API:** https://tyk.io/docs/tyk-dashboard-api/
-- **Developer Portal:** https://tyk.io/docs/portal/overview/getting-started
-- **Tyk Sync:** https://tyk.io/docs/api-management/sync/use-cases
-- **Release Notes:** https://tyk.io/docs/developer-support/release-notes/overview
-- **Support:** https://support.tyk.io/hc/en-gb
+- [Installation Documentation](https://tyk.io/docs/tyk-self-managed/docker)
+- [Tyk Dashboard API](https://tyk.io/docs/tyk-dashboard-api/)
+- [Developer Portal](https://tyk.io/docs/portal/overview/getting-started)
+- [Tyk Sync](https://tyk.io/docs/api-management/sync/use-cases)
+- [Release Notes](https://tyk.io/docs/developer-support/release-notes/overview)
+- [Support](https://support.tyk.io/hc/en-gb)

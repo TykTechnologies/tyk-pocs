@@ -48,9 +48,9 @@ Tyk Operator enables declarative API management using Kubernetes CRDs. This is u
 - Control Plane Dashboard URL
 - **Separate Dashboard User for Operator**
 
-**IMPORTANT: Create a Dedicated User for Operator**
+### Create a Dedicated User for Operator
 
-Create a user account with appropriate permissions to manage APIs on the Dashboard through the Operator:
+**IMPORTANT:** Create a user account with appropriate permissions to manage APIs on the Dashboard through the Operator:
 
 1. Log into your Tyk Dashboard (Cloud or Self-Managed)
 2. Navigate to **User Management** > **Users**

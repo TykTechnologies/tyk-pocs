@@ -131,7 +131,7 @@ tyk-gateway:
       ##  annotations:
       ##    networking.gke.io/managed-certificates: tyk-gateway-cert
       ##  tls: []
-      ## 
+      ##
       ##  Optional: TLS with self-managed certificate
       ##  tls:
       ##    - secretName: tyk-gateway-tls

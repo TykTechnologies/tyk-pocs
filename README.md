@@ -4,7 +4,7 @@ Tyk deployment configurations for Docker and Kubernetes. All configurations are 
 
 ## Prerequisites
 
-**Tyk Licenses** - Get free trial access at https://tyk.io/sign-up/
+**Tyk Licenses** - Get free trial access at [tyk.io/sign-up](https://tyk.io/sign-up/)
 
 Required licenses depend on deployment type:
 
@@ -53,7 +53,7 @@ Located in `docker/utils/`:
 
 ## Repository Structure
 
-```
+```text
 tyk-pocs/
 ├── docker/
 │   ├── self-managed/      # Full stack Docker deployment

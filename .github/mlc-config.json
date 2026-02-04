@@ -1,0 +1,23 @@
+{
+  "ignorePatterns": [
+    {
+      "pattern": "^http://localhost"
+    },
+    {
+      "pattern": "^https://localhost"
+    },
+    {
+      "pattern": "your-mdcb"
+    },
+    {
+      "pattern": "yourdomain.com"
+    },
+    {
+      "pattern": "<.*>"
+    },
+    {
+      "pattern": "github.com/TykTechnologies/tyk-pocs"
+    }
+  ],
+  "aliveStatusCodes": [200, 206, 301, 302, 403]
+}

@@ -426,9 +426,9 @@ Tyk Operator enables declarative API management using Kubernetes CRDs. This is u
 - Control Plane Dashboard URL (Tyk Cloud or Self-Managed MDCB Dashboard)
 - **Separate Dashboard User for Operator** (different from data plane API key)
 
-**IMPORTANT: Create a Dedicated User for Operator**
+#### Create a Dedicated User for Operator
 
-Create a user account with appropriate permissions to manage APIs on the Dashboard through the Operator:
+**IMPORTANT:** Create a user account with appropriate permissions to manage APIs on the Dashboard through the Operator:
 
 1. Log into your Tyk Dashboard (Cloud or Self-Managed)
 2. Navigate to **User Management** > **Users**
@@ -680,5 +680,5 @@ kubectl delete namespace tyk-dp
 
 ## Resources
 
-- **Installation Documentation:** https://tyk.io/docs/tyk-cloud/environments-deployments/hybrid-gateways
-- **How-TO Articles:** https://support.tyk.io/hc/en-gb
+- [Installation Documentation](https://tyk.io/docs/tyk-cloud/environments-deployments/hybrid-gateways)
+- [How-TO Articles](https://support.tyk.io/hc/en-gb)

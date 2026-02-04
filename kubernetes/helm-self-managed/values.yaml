@@ -12,8 +12,8 @@ global:
 
   postgres:
     connectionStringSecret:
-       name: "tyk-conf"
-       keyName: "DashDatabaseConnectionString"
+      name: "tyk-conf"
+      keyName: "DashDatabaseConnectionString"
 
   redis:
     addrs:
@@ -171,7 +171,7 @@ tyk-gateway:
       #   value: "" # PROD: Set max request body size to prevent DDoS and memory issues (in bytes)
       # - name: TYK_GW_HTTPSERVEROPTIONS_SSLINSECURESKIPVERIFY
       #   value: "false" # PROD: Keep false to validate SSL certificates
-      
+
       # ===== UPTIME CHECKS =====
       - name: TYK_GW_UPTIMETESTS_CONFIG_ENABLEUPTIMEANALYTICS
         value: "true"
@@ -312,7 +312,7 @@ tyk-dashboard:
       #   value: "true"
       # - name: TYK_DB_STORAGE_UPTIME_TABLESHARDING
       #   value: "true"
-      
+
       # ===== GENERAL CONFIGURATION =====
 
       - name: TYK_DB_REDISMAXACTIVE

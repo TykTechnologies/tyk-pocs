@@ -2,8 +2,7 @@
 
 ## Prerequisites
 
-- Docker Engine 24.0+ installed
-- Docker Compose v2.20+ installed
+- Docker installed
 - Tyk Control Plane (Tyk Cloud or Self-Managed with MDCB) set up and running
 - MDCB connection credentials from your control plane:
   - Connection String (MDCB endpoint)
@@ -30,18 +29,17 @@ cp .env.example .env
 
 ### 2. Get MDCB Credentials from Control Plane
 
-#### For Tyk Cloud:
+#### For Tyk Cloud
 
-1. Login to [Tyk Cloud Console](https://cloud.tyk.io)
+1. Login to [Tyk Cloud Console](https://account.cloud-ara.tyk.io/)
 2. Navigate to **Deployments** > Select your Control Plane
-3. Click **Add Hybrid Data Plane**
-4. Save the configuration - you'll get:
+3. Save the configuration:
    - **Connection String** (e.g., `xxx.cloud-ara.tyk.io:443`)
    - **Organization ID**
    - **API Key**
    - **Group ID**
 
-#### For Self-Managed MDCB:
+#### For Self-Managed MDCB
 
 1. Login to your Tyk Dashboard
 2. Get your **Organization ID** from Dashboard settings
@@ -107,7 +105,7 @@ docker-compose logs -f
 
 ```bash
 # Check Gateway logs for successful MDCB connection
-docker-compose logs tyk-gateway | grep -i "connected\|rpc\|mdcb"
+docker-compose logs tyk-gateway
 
 # Test Gateway health
 curl http://localhost:8080/hello
@@ -116,11 +114,13 @@ curl http://localhost:8080/hello
 **Verify in Control Plane Dashboard:**
 
 **For Tyk Cloud:**
+
 1. Navigate to Tyk Cloud Console
 2. Go to **Deployments** > Click on your Control Plane
 3. Your hybrid data plane should appear under **Hybrid data planes**
 
 **For Self-Managed:**
+
 1. Navigate to your Tyk Dashboard
 2. Go to **System Management** > **Gateway Nodes**
 3. Your data plane gateway should appear with the configured Group ID
@@ -148,12 +148,13 @@ curl http://localhost:8080/your-api-path/get
 
 ## Access URLs
 
-| Service | URL                  | Description                    |
-| ------- | -------------------- | ------------------------------ |
-| Gateway | http://localhost:8080| Hybrid API Gateway             |
-| Redis   | localhost:6379       | Local cache/session storage    |
+| Service | URL                     | Description                 |
+| ------- | ----------------------- | --------------------------- |
+| Gateway | `http://localhost:8080` | Hybrid API Gateway          |
+| Redis   | `localhost:6379`        | Local cache/session storage |
 
 **Control Plane (managed separately):**
+
 - Dashboard UI and API management are on your Tyk Cloud or Self-Managed control plane
 
 ---
@@ -162,11 +163,11 @@ curl http://localhost:8080/your-api-path/get
 
 ### Environment Files
 
-| File              | Purpose                          |
-| ----------------- | -------------------------------- |
-| `.env`            | Component versions               |
-| `confs/tyk.env`   | Gateway configuration (MDCB)     |
-| `confs/pump.env`  | Pump configuration (hybrid pump) |
+| File             | Purpose                          |
+| ---------------- | -------------------------------- |
+| `.env`           | Component versions               |
+| `confs/tyk.env`  | Gateway configuration (MDCB)     |
+| `confs/pump.env` | Pump configuration (hybrid pump) |
 
 > **Note for AWS Fargate and similar platforms:** These env files serve as a reference for required environment variables. For Fargate/ECS deployments, configure these variables directly in your Task Definitions and use AWS Secrets Manager for sensitive values.
 
@@ -174,21 +175,21 @@ curl http://localhost:8080/your-api-path/get
 
 **Gateway (`confs/tyk.env`):**
 
-| Variable | Description |
-| -------- | ----------- |
+| Variable                               | Description                                      |
+| -------------------------------------- | ------------------------------------------------ |
 | `TYK_GW_SLAVEOPTIONS_CONNECTIONSTRING` | MDCB endpoint (e.g., `xxx.cloud-ara.tyk.io:443`) |
-| `TYK_GW_SLAVEOPTIONS_RPCKEY` | Organization ID |
-| `TYK_GW_SLAVEOPTIONS_APIKEY` | Dashboard User API Key |
-| `TYK_GW_SLAVEOPTIONS_GROUPID` | Data plane cluster identifier |
+| `TYK_GW_SLAVEOPTIONS_RPCKEY`           | Organization ID                                  |
+| `TYK_GW_SLAVEOPTIONS_APIKEY`           | Dashboard User API Key                           |
+| `TYK_GW_SLAVEOPTIONS_GROUPID`          | Data plane cluster identifier                    |
 
 **Pump (`confs/pump.env`):**
 
-| Variable | Description |
-| -------- | ----------- |
+| Variable                                     | Description                     |
+| -------------------------------------------- | ------------------------------- |
 | `TYK_PMP_PUMPS_HYBRID_META_CONNECTIONSTRING` | MDCB endpoint (same as gateway) |
-| `TYK_PMP_PUMPS_HYBRID_META_RPCKEY` | Organization ID |
-| `TYK_PMP_PUMPS_HYBRID_META_APIKEY` | Dashboard User API Key |
-| `TYK_PMP_PUMPS_HYBRID_META_GROUPID` | Data plane cluster identifier |
+| `TYK_PMP_PUMPS_HYBRID_META_RPCKEY`           | Organization ID                 |
+| `TYK_PMP_PUMPS_HYBRID_META_APIKEY`           | Dashboard User API Key          |
+| `TYK_PMP_PUMPS_HYBRID_META_GROUPID`          | Data plane cluster identifier   |
 
 ### Secrets Management
 
@@ -197,111 +198,6 @@ curl http://localhost:8080/your-api-path/get
 - **TYK_GW_SECRET** - Gateway API secret (should match control plane)
 - **TYK_GW_SLAVEOPTIONS_APIKEY** - Dashboard API key for MDCB auth
 - **TYK_PMP_PUMPS_HYBRID_META_APIKEY** - Same API key for pump
-
-**View current configuration:**
-
-```bash
-# Check Gateway MDCB settings
-docker-compose exec tyk-gateway env | grep SLAVEOPTIONS
-
-# Check Pump hybrid settings
-docker-compose exec tyk-pump env | grep HYBRID
-```
-
----
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Control Plane                        │
-│              (Tyk Cloud or Self-Managed)                │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐  │
-│  │  Dashboard  │  │    MDCB     │  │   PostgreSQL    │  │
-│  └─────────────┘  └──────┬──────┘  └─────────────────┘  │
-└──────────────────────────┼──────────────────────────────┘
-                           │ RPC/HTTPS
-                           │ (APIs, Policies, Analytics)
-┌──────────────────────────┼──────────────────────────────┐
-│                    Data Plane (This deployment)         │
-│                          │                              │
-│  ┌───────────────────────▼───────────────────────────┐  │
-│  │              Tyk Gateway (Hybrid)                 │  │
-│  │         - Pulls APIs/Policies via RPC            │  │
-│  │         - Processes API traffic locally          │  │
-│  └───────────────────────┬───────────────────────────┘  │
-│                          │                              │
-│  ┌───────────────────────▼───────────────────────────┐  │
-│  │                     Redis                         │  │
-│  │         - Local rate limiting & caching          │  │
-│  │         - Analytics buffer                       │  │
-│  └───────────────────────┬───────────────────────────┘  │
-│                          │                              │
-│  ┌───────────────────────▼───────────────────────────┐  │
-│  │              Tyk Pump (Hybrid)                    │  │
-│  │         - Forwards analytics to control plane    │  │
-│  └───────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────┘
-```
-
----
-
-## Useful Commands
-
-### View Logs
-
-```bash
-# All services
-docker-compose logs -f
-
-# Gateway logs (check MDCB connection)
-docker-compose logs -f tyk-gateway
-
-# Pump logs (check analytics forwarding)
-docker-compose logs -f tyk-pump
-
-# Last 50 lines
-docker-compose logs --tail=50 tyk-gateway
-```
-
-### Check Status
-
-```bash
-# All containers
-docker-compose ps
-
-# Container health
-docker inspect --format='{{.State.Health.Status}}' tyk-gateway
-
-# Resource usage
-docker stats
-```
-
-### Restart Services
-
-```bash
-# Single service
-docker-compose restart tyk-gateway
-
-# All services
-docker-compose restart
-
-# Full rebuild
-docker-compose down && docker-compose up -d
-```
-
-### Execute Commands in Container
-
-```bash
-# Gateway shell
-docker-compose exec tyk-gateway sh
-
-# Check environment variables
-docker-compose exec tyk-gateway env | grep TYK
-
-# Test Redis connectivity
-docker-compose exec tyk-redis redis-cli ping
-```
 
 ---
 
@@ -313,26 +209,13 @@ docker-compose exec tyk-redis redis-cli ping
 
 ```bash
 # Check Gateway logs for connection errors
-docker-compose logs tyk-gateway | grep -i "error\|failed\|rpc"
+docker-compose logs tyk-gateway
 
 # Common issues:
 # 1. Incorrect MDCB connection string
 # 2. Invalid API credentials (org ID, API key)
 # 3. Network/firewall blocking outbound connection to MDCB
 # 4. SSL certificate issues
-```
-
-**Solution:**
-
-```bash
-# Verify credentials in config
-docker-compose exec tyk-gateway env | grep SLAVEOPTIONS
-
-# Test network connectivity (from gateway container)
-docker-compose exec tyk-gateway nc -zv your-mdcb.cloud-ara.tyk.io 443
-
-# Restart gateway after fixing config
-docker-compose restart tyk-gateway
 ```
 
 ### APIs Not Loading
@@ -344,54 +227,7 @@ docker-compose restart tyk-gateway
 3. Check Gateway logs for sync errors:
 
 ```bash
-docker-compose logs tyk-gateway | grep -i "policy\|api\|sync"
-```
-
-### No Analytics in Dashboard
-
-**Symptom:** API calls work but no data in Dashboard analytics
-
-```bash
-# Check Pump is running
-docker-compose ps tyk-pump
-
-# Check Pump logs for errors
-docker-compose logs tyk-pump | grep -i "error\|failed"
-
-# Verify Pump MDCB credentials match Gateway
-docker-compose exec tyk-pump env | grep HYBRID
-
-# Verify Gateway analytics is enabled
-docker-compose exec tyk-gateway env | grep ANALYTICS
-# Should show: TYK_GW_ENABLEANALYTICS=true
-
-# Generate test traffic and wait ~2 minutes
-for i in {1..10}; do curl http://localhost:8080/your-api/get; done
-```
-
-### Container Won't Start
-
-```bash
-# Check detailed status
-docker-compose ps -a
-
-# Check logs for the failing container
-docker-compose logs <service-name>
-
-# Reset and restart
-docker-compose down -v
-docker-compose up -d
-```
-
-### Redis Connection Issues
-
-```bash
-# Check Redis is running
-docker-compose exec tyk-redis redis-cli ping
-# Should return: PONG
-
-# Check Gateway can reach Redis
-docker-compose exec tyk-gateway ping tyk-redis
+docker-compose logs tyk-gateway
 ```
 
 ---
@@ -399,11 +235,6 @@ docker-compose exec tyk-gateway ping tyk-redis
 ## Production Considerations
 
 - Check the env files under `confs/` and apply the PROD recommendations noted in comments
-- Use managed Redis (ElastiCache, Redis Cloud) for high availability
-- Deploy multiple Gateway instances behind a load balancer
-- Enable TLS for Gateway endpoints
-- Set `TYK_GW_SLAVEOPTIONS_SSLINSECURESKIPVERIFY=false` with proper certificates
-- Consider enabling the MDCB synchroniser for periodic key sync
 
 ---
 
@@ -436,8 +267,8 @@ PUMP_VERSION=v1.13.2
 
 ## Resources
 
-- **Hybrid Gateway Documentation:** https://tyk.io/docs/tyk-cloud/environments-deployments/hybrid-gateways
-- **MDCB Configuration:** https://tyk.io/docs/tyk-multi-data-centre/
-- **Tyk Cloud Console:** https://cloud.tyk.io
-- **Release Notes:** https://tyk.io/docs/developer-support/release-notes/overview
-- **Support:** https://support.tyk.io/hc/en-gb
+- [Hybrid Gateway Documentation](https://tyk.io/docs/tyk-cloud/environments-deployments/hybrid-gateways)
+- [MDCB Configuration](https://tyk.io/docs/tyk-multi-data-centre/)
+- [Tyk Cloud Console](https://account.cloud-ara.tyk.io/)
+- [Release Notes](https://tyk.io/docs/developer-support/release-notes/overview)
+- [Support](https://support.tyk.io/hc/en-gb)

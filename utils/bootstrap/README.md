@@ -318,15 +318,15 @@ docker network create tyk
 
 After successful bootstrap:
 
-**1. Login to Dashboard**
+### 1. Login to Dashboard
 
-```
+```text
 URL: http://localhost:3000
 Email: admin@example.com
 Password: topsecret123
 ```
 
-**2. Test the API**
+### 2. Test the API
 
 ```bash
 # Get your API key from credentials file
@@ -337,15 +337,15 @@ curl http://localhost:8080/httpbin/get \
 
 ```
 
-**3. Login to Developer Portal (if configured)**
+### 3. Login to Developer Portal (if configured)
 
-```
+```text
 URL: http://localhost:3001
 Email: portal-admin@example.com
 Password: portalpass123
 ```
 
-**4. Use Dashboard API**
+### 4. Use Dashboard API
 
 ```bash
 # Get credentials from file
