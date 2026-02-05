@@ -212,6 +212,40 @@ curl "http://localhost:3001/portal-api/bootstrap" \
 
 **Save the `api_token`** - you'll need it for Portal configuration.
 
+### Alternative: Bootstrap Portal via Command
+
+The portal image supports a `--bootstrap` CLI flag that runs bootstrap on first start. Add a `command` to the `tyk-portal` service in `docker-compose.yml`:
+
+```yaml
+tyk-portal:
+  image: tykio/portal:${PORTAL_VERSION:-v1.16.0}
+  command:
+    - "--bootstrap"
+    - "--user=portal-admin@example.com"
+    - "--pass=portalpass123"
+    - "--first=Portal"
+    - "--last=Admin"
+    - '--email-settings={"SMTP":{"Host":"smtp.example.com","Port":587,"User":"smtpuser","Pass":"smtppass"},"Admin":"admin@example.com","DefaultFrom":"noreply@example.com"}'
+```
+
+The same arguments can be passed directly to the container on platforms that don't use docker-compose (e.g. AWS Fargate, ECS, Kubernetes). In an ECS task definition, escape the inner JSON quotes:
+
+```json
+"command": [
+  "--bootstrap",
+  "--user=portal-admin@example.com",
+  "--pass=portalpass123",
+  "--first=Portal",
+  "--last=Admin",
+  "--email-settings={\"SMTP\":{\"Host\":\"smtp.example.com\",\"Port\":587,\"User\":\"smtpuser\",\"Pass\":\"smtppass\"},\"Admin\":\"admin@example.com\",\"DefaultFrom\":\"noreply@example.com\"}"
+]
+```
+
+**Important notes on `--email-settings`:**
+
+- The value must be valid JSON. In docker-compose, use the **array form** of `command` (as shown above) to preserve JSON double quotes. The single-string form strips inner quotes, producing invalid JSON that silently fails.
+- SMTP settings are only written to the DB during bootstrap (`configuration_tables`). Changing the flag after bootstrap has no effect.
+
 ---
 
 ## Phase 5: First API Test
